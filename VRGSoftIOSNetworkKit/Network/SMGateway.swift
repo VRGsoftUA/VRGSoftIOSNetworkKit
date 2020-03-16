@@ -2,80 +2,62 @@
 //  SMGateway.swift
 //  VRGSoftIOSNetworkKit
 //
-//  Created by OLEKSANDR SEMENIUK on 1/4/17.
-//  Copyright © 2017 VRG Soft. All rights reserved.
+//  Created by OLEKSANDR SEMENIUK on 7/17/18.
+//  Copyright © 2020 VRG Soft. All rights reserved.
 //
 
-import Foundation
 import Alamofire
 
-open class SMGateway {
+public protocol SMGatewayProtocol: SMGatewayRequestDelegate {
     
-    open var defaultParameters: [String: AnyObject] = [:]
-    open var defaultHeaders: [String: String] = [:]
+    var defaultGatewayConfigurator: SMGatewayConfiguratorProtocol { get }
     
-    open var baseUrl: URL?
+    func adapter(for request: SMGatewayRequest) -> SMRequestAdapter
+    func retrier(for request: SMGatewayRequest) -> SMRequestRetrier
     
-    open var requests: [SMGatewayRequest] = []
+    func defaultFailureBlockFor(request aRequest: SMGatewayRequest) -> SMGatewayRequestResponseBlock
     
-    public init() {
-        
-        defaultGatewayConfigurator().register(gateway: self)
-        
-        if let url: URL = defaultGatewayConfigurator().url {
-            
-            configureWithBase(url: url)
-        }
+    
+    // MARK: Create requests
+    
+    func request(type aType: HTTPMethod,
+                 path aPath: String,
+                 parameters aParameters: [String: AnyObject]?,
+                 successBlock aSuccessBlock: @escaping SMGatewayRequestResponseBlock) -> SMGatewayRequest
+    func request(type aType: HTTPMethod,
+                 path aPath: String,
+                 parameters aParameters: [String: AnyObject]?,
+                 successParserBlock aSuccessParserBlock: @escaping SMGatewayRequestSuccessParserBlock) -> SMGatewayRequest
+    func uploadRequest(type aType: HTTPMethod,
+                       path aPath: String,
+                       constructingBlock: @escaping SMConstructingMultipartFormDataBlock,
+                       successBlock aSuccessBlock: @escaping SMGatewayRequestResponseBlock) -> SMGatewayRequestMultipart
+    
+}
+
+public extension SMGatewayProtocol {
+    
+    var defaultGatewayConfigurator: SMGatewayConfiguratorProtocol {
+        return SMDefaultGatewayConfigurator.shared
     }
     
-    open func isInternetReachable() -> Bool {
+    func adapter(for request: SMGatewayRequest) -> SMRequestAdapter {
         
-        return SMGatewayConfigurator.shared.isInternetReachable()
+        let adapter: SMRequestAdapter = SMRequestAdapter(request: request)
+        
+        return adapter
     }
     
-    open func configureWithBase(url aUrl: URL) {
+    func retrier(for request: SMGatewayRequest) -> SMRequestRetrier {
         
-        baseUrl = aUrl
+        let retrier: SMRequestRetrier = SMRequestRetrier(request: request)
+        
+        return retrier
     }
     
-    open func acceptableStatusCodes() -> [Int]? {
-        return Array(200..<300)
-    }
-    
-    open func acceptableContentTypes(for dataRequest: DataRequest) -> [String]? {
+    func defaultFailureBlockFor(request aRequest: SMGatewayRequest) -> SMGatewayRequestResponseBlock {
         
-        if let accept: String = dataRequest.request?.value(forHTTPHeaderField: "Accept") {
-            
-            return accept.components(separatedBy: ",")
-        }
-        
-        return ["*/*"]
-    }
-    
-    open func start(request aRequest: SMGatewayRequest) {
-        
-        aRequest.getDataRequest { [weak self] request in
-            
-            if let acceptableStatusCodes: [Int] = self?.acceptableStatusCodes() {
-                request.validate(statusCode: acceptableStatusCodes)
-            }
-            
-            if let acceptableContentTypes: [String] = self?.acceptableContentTypes(for: request) {
-                request.validate(contentType: acceptableContentTypes)
-            }
-            
-            request.resume()
-        }
-    }
-    
-    open func defaultGatewayConfigurator() -> SMGatewayConfigurator {
-        
-        return SMGatewayConfigurator.shared
-    }
-    
-    open func defaultFailureBlockFor(request aRequest: SMGatewayRequest) -> SMGatewayRequestResponseBlock {
-        
-        func result(data: DataRequest, responseObject: DataResponse<Any>) -> SMResponse {
+        func result(data: DataRequest, responseObject: AFDataResponse<Any>) -> SMResponse {
             
             let response: SMResponse = SMResponse()
             
@@ -91,16 +73,14 @@ open class SMGateway {
     }
     
     
-    // MARK: Request Fabric
+    // MARK: Create requests
     
-    open func getRequestClass() -> SMGatewayRequest.Type {
+    func request(type aType: HTTPMethod,
+                 path aPath: String,
+                 parameters aParameters: [String: AnyObject]? = nil,
+                 successBlock aSuccessBlock: @escaping SMGatewayRequestResponseBlock) -> SMGatewayRequest {
         
-        return SMGatewayRequest.self
-    }
-    
-    open func request(type aType: HTTPMethod, path aPath: String, parameters aParameters: [String: AnyObject]? = [:], successBlock aSuccessBlock: @escaping SMGatewayRequestResponseBlock) -> SMGatewayRequest {
-        
-        let result: SMGatewayRequest = getRequestClass().init(gateway: self, type: aType)
+        let result: SMGatewayRequest = SMGatewayRequest.init(delegate: self, type: aType)
         
         result.path = aPath
         
@@ -116,9 +96,12 @@ open class SMGateway {
         return result
     }
 
-    open func request(type aType: HTTPMethod, path aPath: String, parameters aParameters: [String: AnyObject]? = [:], successParserBlock aSuccessParserBlock: @escaping SMGatewayRequestSuccessParserBlock) -> SMGatewayRequest {
+    func request(type aType: HTTPMethod,
+                 path aPath: String,
+                 parameters aParameters: [String: AnyObject]? = nil,
+                 successParserBlock aSuccessParserBlock: @escaping SMGatewayRequestSuccessParserBlock) -> SMGatewayRequest {
         
-        let result: SMGatewayRequest = getRequestClass().init(gateway: self, type: aType)
+        let result: SMGatewayRequest = SMGatewayRequest.init(delegate: self, type: aType)
         
         result.path = aPath
         
@@ -134,9 +117,13 @@ open class SMGateway {
         return result
     }
 
-    open func uploadRequest(type aType: HTTPMethod = .post, path aPath: String, constructingBlock: @escaping SMConstructingMultipartFormDataBlock, successBlock aSuccessBlock: @escaping SMGatewayRequestResponseBlock) -> SMGatewayRequestMultipart {
+    func uploadRequest(type aType: HTTPMethod = .post,
+                       path aPath: String,
+                       constructingBlock: @escaping SMConstructingMultipartFormDataBlock,
+                       successBlock aSuccessBlock: @escaping SMGatewayRequestResponseBlock) -> SMGatewayRequestMultipart {
         
-        let result: SMGatewayRequestMultipart = SMGatewayRequestMultipart(gateway: self, type: aType, constructingBlock: constructingBlock)
+        let result: SMGatewayRequestMultipart = SMGatewayRequestMultipart(delegate: self, type: aType, constructingBlock: constructingBlock)
+        
         result.path = aPath
         
         let failureBlock: SMGatewayRequestResponseBlock = self.defaultFailureBlockFor(request: result)
@@ -144,5 +131,56 @@ open class SMGateway {
         result.setup(successBlock: aSuccessBlock, failureBlock: failureBlock)
         
         return result
+    }
+    
+    
+    // MARK: - SMGatewayRequestDelegate
+    
+    func baseUrl(for request: SMGatewayRequest) -> URL? {
+        
+        let result: URL? = defaultGatewayConfigurator.baseUrl
+        
+        return result
+    }
+    
+    func defaultParameters(for request: SMGatewayRequest) -> [String: AnyObject] {
+        
+        let result: [String: AnyObject] = defaultGatewayConfigurator.defaultParameters
+        
+        return result
+    }
+    
+    func defaultHeaders(for request: SMGatewayRequest) -> [String: String] {
+        
+        let result: [String: String] = defaultGatewayConfigurator.defaultHeaders
+        
+        return result
+    }
+    
+    func isInternetReachable(for request: SMGatewayRequest) -> Bool {
+        
+        let result: Bool = defaultGatewayConfigurator.isInternetReachable
+        
+        return result
+    }
+    
+    func acceptableStatusCodes(for request: SMGatewayRequest) -> [Int]? {
+        
+        return nil
+    }
+    
+    func acceptableContentTypes(for request: SMGatewayRequest) -> [String]? {
+        
+        return nil
+    }
+    
+    func interceptor(for request: SMGatewayRequest) -> SMRequestInterceptor {
+        
+        let adapter: SMRequestAdapter = self.adapter(for: request)
+        let retrier: SMRequestRetrier = self.retrier(for: request)
+        
+        let interceptor: SMRequestInterceptor = SMRequestInterceptor(adapter: adapter, retrier: retrier)
+        
+        return interceptor
     }
 }

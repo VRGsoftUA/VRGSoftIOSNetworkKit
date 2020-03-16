@@ -21,6 +21,9 @@
 		8BB4E1BB241F8BCE00D88AAA /* SMCompoundRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BB4E1B9241F8BCE00D88AAA /* SMCompoundRequest.swift */; };
 		8BB4E1BC241F8BCE00D88AAA /* SMRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BB4E1BA241F8BCE00D88AAA /* SMRequest.swift */; };
 		8BB4E1BE241F8BDE00D88AAA /* SMResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BB4E1BD241F8BDE00D88AAA /* SMResponse.swift */; };
+		8BB4E1E3241FA38900D88AAA /* SMNetworkReachabilityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BB4E1E0241FA38900D88AAA /* SMNetworkReachabilityManager.swift */; };
+		8BB4E1E4241FA38900D88AAA /* SMRequestAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BB4E1E1241FA38900D88AAA /* SMRequestAdapter.swift */; };
+		8BB4E1E5241FA38900D88AAA /* SMRequestInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BB4E1E2241FA38900D88AAA /* SMRequestInterceptor.swift */; };
 		B4C584BD515DF4267E77E5AD /* Pods_VRGSoftIOSNetworkKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 79F159A4849C277D40FD6CCF /* Pods_VRGSoftIOSNetworkKit.framework */; };
 /* End PBXBuildFile section */
 
@@ -44,6 +47,9 @@
 		8BB4E1B9241F8BCE00D88AAA /* SMCompoundRequest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SMCompoundRequest.swift; sourceTree = "<group>"; };
 		8BB4E1BA241F8BCE00D88AAA /* SMRequest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SMRequest.swift; sourceTree = "<group>"; };
 		8BB4E1BD241F8BDE00D88AAA /* SMResponse.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SMResponse.swift; sourceTree = "<group>"; };
+		8BB4E1E0241FA38900D88AAA /* SMNetworkReachabilityManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SMNetworkReachabilityManager.swift; sourceTree = "<group>"; };
+		8BB4E1E1241FA38900D88AAA /* SMRequestAdapter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SMRequestAdapter.swift; sourceTree = "<group>"; };
+		8BB4E1E2241FA38900D88AAA /* SMRequestInterceptor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SMRequestInterceptor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -106,9 +112,12 @@
 				8BB4E1B9241F8BCE00D88AAA /* SMCompoundRequest.swift */,
 				8BB4E1B2241F8AA400D88AAA /* SMGateway.swift */,
 				8BB4E1AF241F8AA400D88AAA /* SMGatewayConfigurator.swift */,
+				8BB4E1E0241FA38900D88AAA /* SMNetworkReachabilityManager.swift */,
 				8BB4E1B3241F8AA400D88AAA /* SMGatewayRequest.swift */,
 				8BB4E1B0241F8AA400D88AAA /* SMGatewayRequestMultipart.swift */,
 				8BB4E1BA241F8BCE00D88AAA /* SMRequest.swift */,
+				8BB4E1E1241FA38900D88AAA /* SMRequestAdapter.swift */,
+				8BB4E1E2241FA38900D88AAA /* SMRequestInterceptor.swift */,
 				8BB4E1B1241F8AA400D88AAA /* SMRequestRetrier.swift */,
 				8BB4E1BD241F8BDE00D88AAA /* SMResponse.swift */,
 			);
@@ -261,10 +270,13 @@
 				8BB4E1BE241F8BDE00D88AAA /* SMResponse.swift in Sources */,
 				8BB4E19B241F8A2700D88AAA /* AppDelegate.swift in Sources */,
 				8BB4E1B7241F8AA400D88AAA /* SMGateway.swift in Sources */,
+				8BB4E1E5241FA38900D88AAA /* SMRequestInterceptor.swift in Sources */,
 				8BB4E1B8241F8AA400D88AAA /* SMGatewayRequest.swift in Sources */,
 				8BB4E1B6241F8AA400D88AAA /* SMRequestRetrier.swift in Sources */,
+				8BB4E1E3241FA38900D88AAA /* SMNetworkReachabilityManager.swift in Sources */,
 				8BB4E19D241F8A2700D88AAA /* SceneDelegate.swift in Sources */,
 				8BB4E1BC241F8BCE00D88AAA /* SMRequest.swift in Sources */,
+				8BB4E1E4241FA38900D88AAA /* SMRequestAdapter.swift in Sources */,
 				8BB4E1B4241F8AA400D88AAA /* SMGatewayConfigurator.swift in Sources */,
 				8BB4E1BB241F8BCE00D88AAA /* SMCompoundRequest.swift in Sources */,
 			);

@@ -2,11 +2,10 @@
 //  SMGatewayRequestMultipart.swift
 //  VRGSoftIOSNetworkKit
 //
-//  Created by OLEKSANDR SEMENIUK on 4/6/18.
-//  Copyright © 2018 VRG Soft. All rights reserved.
+//  Created by OLEKSANDR SEMENIUK on 7/17/18.
+//  Copyright © 2020 VRG Soft. All rights reserved.
 //
 
-import UIKit
 import Alamofire
 
 public typealias SMConstructingMultipartFormDataBlock = (MultipartFormData) -> Void
@@ -15,75 +14,61 @@ open class SMGatewayRequestMultipart: SMGatewayRequest {
     
     open var constructingBlock: SMConstructingMultipartFormDataBlock
     
-    public init(gateway aGateway: SMGateway, type aType: HTTPMethod, constructingBlock: @escaping SMConstructingMultipartFormDataBlock) {
+    public init(delegate: SMGatewayRequestDelegate?,
+                type aType: HTTPMethod,
+                constructingBlock: @escaping SMConstructingMultipartFormDataBlock) {
         
         self.constructingBlock = constructingBlock
-        super.init(gateway: aGateway, type: aType)
+        super.init(delegate: delegate, type: aType)
     }
     
-    public required init(gateway aGateway: SMGateway, type aType: HTTPMethod) {
+    public init(type: HTTPMethod,
+                path: String,
+                parameters: [String: AnyObject]? = nil,
+                headers: [String: String]? = nil,
+                constructingBlock: @escaping SMConstructingMultipartFormDataBlock) {
         
-        fatalError("init(gateway:type:) has not been implemented")
+        self.constructingBlock = constructingBlock
+        
+        super.init(type: type, path: path, parameters: parameters, headers: headers)
+        
     }
     
-    override open func getDataRequest(completion: @escaping (_ request: UploadRequest) -> Void) {
+    public override init(delegate: SMGatewayRequestDelegate?, type: HTTPMethod) {
+        fatalError("init(delegate:type:) has not been implemented")
+    }
+    
+    override init(type: HTTPMethod,
+                  path: String,
+                  parameters: [String: AnyObject]? = nil,
+                  headers: [String: String]? = nil) {
+        fatalError("init(type:path:parameters:headers:) has not been implemented")
         
-        guard let baseUrl: URL = gateway.baseUrl else { return }
-        
-        var fullPath: URL = baseUrl
-        
-        if let path: String = path {
-            
-            fullPath = fullPath.appendingPathComponent(path)
+    }
+    
+    override open func getDataRequest() -> DataRequest? {
+        guard let fullPath: URL = fullPath else {
+            return nil
         }
         
-        var allParams: [String: Any] = [:]
-        
-        for (key, value): (String, AnyObject) in (gateway.defaultParameters) {
+        let uploadRequest: UploadRequest = AF.upload(multipartFormData: { multipartFormData in
             
-            allParams.updateValue(value, forKey: key)
-        }
-        
-        for (key, value): (String, AnyObject) in (parameters) {
-            
-            allParams.updateValue(value, forKey: key)
-        }
-        
-        var allHeaders: [String: String] = [:]
-        
-        for (key, value): (String, String) in (gateway.defaultHeaders) {
-            
-            allHeaders.updateValue(value, forKey: key)
-        }
-        
-        for (key, value): (String, String) in (headers) {
-            
-            allHeaders.updateValue(value, forKey: key)
-        }
-        
-        print("\n\nSTART", self)
-        print("URL - ", fullPath, "\n", "TYPE - ", type, "\n", "HEADERS - ", allHeaders, "\n", "PARAMS - ", allParams, "\n\n")
-        
-        Alamofire.upload(multipartFormData: { multipartFormData in
             self.constructingBlock(multipartFormData)
-        }, to: fullPath, method: type, headers: allHeaders, encodingCompletion: { multipartFormDataEncodingResult in
-            switch multipartFormDataEncodingResult {
-            case .success(let request, _, _):
-                self.dataRequest = request
-                completion(request)
-                self.dataRequest?.responseJSON(completionHandler: {[weak self] responseObject in
-                    switch responseObject.result {
-                    case .success:
-//                        print("Request success with data: \(data)")
-                        self?.executeSuccessBlock(responseObject: responseObject)
-                    case .failure(let error):
-                        print("Request failed with error: \(error)")
-                        self?.executeFailureBlock(responseObject: responseObject)
-                    }
-                })
+            
+        }, to: fullPath, method: type, headers: allHeaders)
+        
+        self.dataRequest = uploadRequest
+        
+        self.dataRequest?.responseJSON(completionHandler: {[weak self] responseObject in
+            switch responseObject.result {
+            case .success:
+                self?.executeSuccessBlock(responseObject: responseObject)
             case .failure(let error):
-                print(error)
+                print("Request failed with error: \(error)")
+                self?.executeFailureBlock(responseObject: responseObject)
             }
         })
+        
+        return uploadRequest
     }
 }

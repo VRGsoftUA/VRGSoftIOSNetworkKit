@@ -3,7 +3,7 @@
 //  VRGSoftIOSNetworkKit
 //
 //  Created by OLEKSANDR SEMENIUK on 7/17/18.
-//  Copyright © 2018 VRG Soft. All rights reserved.
+//  Copyright © 2020 VRG Soft. All rights reserved.
 //
 
 import UIKit

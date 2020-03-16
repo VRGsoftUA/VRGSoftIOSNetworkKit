@@ -2,8 +2,8 @@
 //  SMRequest.swift
 //  VRGSoftIOSNetworkKit
 //
-//  Created by OLEKSANDR SEMENIUK on 1/3/17.
-//  Copyright © 2017 VRG Soft. All rights reserved.
+//  Created by OLEKSANDR SEMENIUK on 7/17/18.
+//  Copyright © 2020 VRG Soft. All rights reserved.
 //
 
 import Foundation

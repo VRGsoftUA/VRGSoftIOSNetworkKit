@@ -2,17 +2,50 @@
 //  SMGatewayRequest.swift
 //  VRGSoftIOSNetworkKit
 //
-//  Created by OLEKSANDR SEMENIUK on 1/4/17.
-//  Copyright © 2017 VRG Soft. All rights reserved.
+//  Created by OLEKSANDR SEMENIUK on 7/17/18.
+//  Copyright © 2020 VRG Soft. All rights reserved.
 //
 
-import Foundation
 import Alamofire
 
-public typealias SMGatewayRequestResponseBlock = (DataRequest, DataResponse<Any>) -> SMResponse
+public typealias SMGatewayRequestResponseBlock = (DataRequest, AFDataResponse<Any>) -> SMResponse
 
 public typealias SMRequestParserBlock = (SMResponse) -> Void
-public typealias SMGatewayRequestSuccessParserBlock = (DataRequest, DataResponse<Any>, @escaping SMRequestParserBlock) -> Void
+public typealias SMGatewayRequestSuccessParserBlock = (DataRequest, AFDataResponse<Any>, @escaping SMRequestParserBlock) -> Void
+
+public protocol SMGatewayRequestDelegate: class {
+    func baseUrl(for request: SMGatewayRequest) -> URL?
+    func isInternetReachable(for request: SMGatewayRequest) -> Bool
+    
+    func defaultParameters(for request: SMGatewayRequest) -> [String: AnyObject]
+    func defaultHeaders(for request: SMGatewayRequest) -> [String: String]
+    func acceptableStatusCodes(for request: SMGatewayRequest) -> [Int]?
+    func acceptableContentTypes(for request: SMGatewayRequest) -> [String]?
+    func interceptor(for request: SMGatewayRequest) -> SMRequestInterceptor?
+}
+
+public extension SMGatewayRequestDelegate {
+    
+    func defaultParameters(for request: SMGatewayRequest) -> [String: AnyObject] {
+        return [:]
+    }
+    
+    func defaultHeaders(for request: SMGatewayRequest) -> [String: String] {
+        return [:]
+    }
+    
+    func acceptableStatusCodes(for request: SMGatewayRequest) -> [Int]? {
+        return nil
+    }
+    
+    func acceptableContentTypes(for request: SMGatewayRequest) -> [String]? {
+        return nil
+    }
+    
+    func interceptor(for request: SMGatewayRequest) -> SMRequestInterceptor? {
+        return nil
+    }
+}
 
 open class SMGatewayRequest: SMRequest {
     
@@ -25,87 +58,225 @@ open class SMGatewayRequest: SMRequest {
         array.append("HEADERS - " + allHeaders.description)
         array.append("PARAMS - " + allParams.description)
         
-        return  array.joined(separator: "\n")
+        return  array.joined(separator: "\n") + "\n"
     }
     
-    open unowned var gateway: SMGateway
+    open weak var delegate: SMGatewayRequestDelegate?
+    open var type: HTTPMethod
+    
     open var dataRequest: DataRequest?
     
     open var retryCount: Int = 0
     open var retryTime: TimeInterval = 0.5
     
+    open var acceptableStatusCodes: [Int]?
+    open var acceptableContentTypes: [String]?
+    
     open var path: String?
-    open var type: HTTPMethod
+   
     open var parameterEncoding: ParameterEncoding?
     
-    open var parameters: [String: AnyObject] = [:]
-    open var headers: [String: String] = [:]
+    open var parameters: [String: AnyObject]?
+    open var headers: [String: String]?
     
     open var successBlock: SMGatewayRequestResponseBlock?
     open var successParserBlock: SMGatewayRequestSuccessParserBlock?
     open var failureBlock: SMGatewayRequestResponseBlock?
     
-    var allParams: [String: Any] {
+    open var printCURLDescription: Bool = true
+    
+    open var allParams: [String: Any] {
         
         var result: [String: Any] = [:]
         
-        for (key, value): (String, AnyObject) in (gateway.defaultParameters) {
+        if let defaultParameters: [String: AnyObject] = delegate?.defaultParameters(for: self) {
             
-            result.updateValue(value, forKey: key)
+            for (key, value): (String, AnyObject) in defaultParameters {
+                
+                result.updateValue(value, forKey: key)
+            }
         }
         
-        for (key, value): (String, AnyObject) in (parameters) {
+        if let parameters: [String: AnyObject] = parameters {
             
-            result.updateValue(value, forKey: key)
-        }
-        
-        return result
-    }
-    
-    var allHeaders: [String: String] {
-        
-        var result: [String: String] = [:]
-        
-        for (key, value): (String, String) in (gateway.defaultHeaders) {
-            
-            result.updateValue(value, forKey: key)
-        }
-        
-        for (key, value): (String, String) in (headers) {
-            
-            result.updateValue(value, forKey: key)
+            for (key, value): (String, AnyObject) in parameters {
+                
+                result.updateValue(value, forKey: key)
+            }
         }
         
         return result
     }
     
-    var fullPath: URL? {
+    open var allHeaders: HTTPHeaders {
         
-        var result: URL? = gateway.baseUrl
+        var result: HTTPHeaders = HTTPHeaders()
         
-        if let path: String = path {
+        if let defaultHeaders: [String: String] = delegate?.defaultHeaders(for: self) {
             
-            result = result?.appendingPathComponent(path)
+            for (key, value): (String, String) in defaultHeaders {
+                
+                result.update(name: key, value: value)
+            }
+        }
+        
+        if let headers: [String: String] = headers {
+            
+            for (key, value): (String, String) in headers {
+                
+                result.update(name: key, value: value)
+            }
         }
         
         return result
     }
     
-    
-    public required init(gateway aGateway: SMGateway, type aType: HTTPMethod) {
+    open var allAcceptableStatusCodes: [Int]? {
         
-        gateway = aGateway
-        self.type = aType
+        var result: [Int]?
+                
+        if let acceptableStatusCodes: [Int] = delegate?.acceptableStatusCodes(for: self) {
+            
+            if result == nil {
+                result = []
+            }
+            
+            result?.append(contentsOf: acceptableStatusCodes)
+        }
+        
+        if let acceptableStatusCodes: [Int] = acceptableStatusCodes {
+            
+            if result == nil {
+                result = []
+            }
+            
+            result?.append(contentsOf: acceptableStatusCodes)
+        }
+        
+        return result
+    }
+    
+    open var allAcceptableContentTypes: [String]? {
+        
+        var result: [String]?
+                
+        if let acceptableContentTypes: [String] = delegate?.acceptableContentTypes(for: self) {
+            
+            if result == nil {
+                result = []
+            }
+            
+            result?.append(contentsOf: acceptableContentTypes)
+        }
+        
+        if let acceptableContentTypes: [String] = acceptableContentTypes {
+            
+            if result == nil {
+                result = []
+            }
+            
+            result?.append(contentsOf: acceptableContentTypes)
+        }
+        
+        return result
+    }
+    
+    open var fullPath: URL? {
+        
+        var result: URL?
+        
+        if let baseUrl: URL = delegate?.baseUrl(for: self) {
+            
+            result = baseUrl
+            
+            if let path: String = path {
+                result = baseUrl.appendingPathComponent(path)
+            }
+        } else if let path: String = path {
+            
+            result = URL(string: path)
+        }
+        
+        return result
+    }
+    
+    open var interceptor: RequestInterceptor? {
+        
+        let result: RequestInterceptor? = delegate?.interceptor(for: self)
+        
+        return result
+    }
+    
+    public init(delegate: SMGatewayRequestDelegate?, type: HTTPMethod) {
+        self.delegate = delegate
+        self.type = type
+    }
+    
+    public init(type: HTTPMethod, path: String, parameters: [String: AnyObject]? = nil, headers: [String: String]? = nil) {
+        self.type = type
+        self.path = path
+        self.parameters = parameters
+        self.headers = headers
+    }
+    
+    open func parameterEncoding(for type: HTTPMethod) -> ParameterEncoding? {
+        let result: ParameterEncoding?
+        
+        if let parameterEncoding: ParameterEncoding = parameterEncoding {
+            result = parameterEncoding
+        } else {
+            switch type {
+            case .options, .head, .get, .delete:
+                result = URLEncoding.default
+            case .patch, .post, .put:
+                result = JSONEncoding.default
+            default:
+                result = nil
+            }
+        }
+        
+        return result
     }
     
     @discardableResult
     override open func start() -> Self {
         
-        super.start()
-        
-        gateway.start(request: self)
+        if let dataRequest: DataRequest = getDataRequest() {
+            
+            super.start()
+            
+            if let acceptableStatusCodes: [Int] = allAcceptableStatusCodes {
+                dataRequest.validate(statusCode: acceptableStatusCodes)
+            }
+            
+            if let acceptableContentTypes: [String] = acceptableContentTypes {
+                dataRequest.validate(contentType: acceptableContentTypes)
+            }
+            
+            self.dataRequest = dataRequest
+            
+            print("\n\nSTART", self)
+            print(debugDescription)
+            
+            printCURLIfNeeded()
+            
+            dataRequest.resume()
+        }
         
         return self
+    }
+    
+    func printCURLIfNeeded() {
+        if printCURLDescription {
+            dataRequest?.cURLDescription(calling: { test in
+                print("""
+                    \ncURL description \(self)
+                    **********************
+                    \(test)
+                    **********************
+                    """)
+            })
+        }
     }
     
     override open func cancel() {
@@ -115,97 +286,67 @@ open class SMGatewayRequest: SMRequest {
     
     override open func canExecute() -> Bool {
         
-        return gateway.isInternetReachable()
+        let result: Bool = delegate?.isInternetReachable(for: self) ?? true
+        
+        return result
     }
     
     override open func isCancelled() -> Bool {
         
-        return dataRequest?.task?.state == URLSessionTask.State.completed
+        return dataRequest?.task?.state == .completed
     }
     
     override open func isExecuting() -> Bool {
         
-        return dataRequest?.task?.state == URLSessionTask.State.running
+        return dataRequest?.task?.state == .running
     }
     
     override open func isFinished() -> Bool {
         
-        return dataRequest?.task?.state == URLSessionTask.State.completed
+        return dataRequest?.task?.state == .completed
     }
     
-    open func getDataRequest(completion: @escaping (_ request: DataRequest) -> Void) {
+    open func getDataRequest() -> DataRequest? {
         
-        guard let baseUrl: URL = gateway.baseUrl else { return }
-        
-        var fullPath: URL = baseUrl
-        
-        if let path: String = path {
-            
-            fullPath = fullPath.appendingPathComponent(path)
-        }
+        guard let fullPath: URL = fullPath,
+            let parameterEncoding = parameterEncoding(for: type) else { return  nil }
+                                
+        let dataRequest: DataRequest = AF.request(fullPath, method: type, parameters: allParams, encoding: parameterEncoding, headers: allHeaders, interceptor: interceptor)
                 
-        if parameterEncoding == nil {
+        dataRequest.responseJSON(completionHandler: {[weak self] responseObject in
             
-            switch type {
-            case .options, .head, .get, .delete:
-                parameterEncoding = URLEncoding.default
-            case .patch, .post, .put:
-                parameterEncoding = JSONEncoding.default
-            default: break
-            }
-        }
-        
-        if let parameterEncoding: ParameterEncoding = parameterEncoding {
-            
-            let dataRequest: DataRequest = Alamofire.request(fullPath, method: type, parameters: allParams, encoding: parameterEncoding, headers: allHeaders)
-            self.dataRequest = dataRequest
-            
-            print("\n\nSTART", self)
-            print(debugDescription)
-            
-            SMGatewayConfigurator.shared.retrier.addRetryInfo(gatewayRequest: self)
-            
-            dataRequest.responseJSON(completionHandler: {[weak self] responseObject in
-                
-                switch responseObject.result {
-                case .success:
-                    
+            switch responseObject.result {
+            case .success:
+                let callBack: SMRequestParserBlock = { (aResponse: SMResponse) in
                     if let strongSelf: SMGatewayRequest = self {
-                        SMGatewayConfigurator.shared.retrier.deleteRetryInfo(gatewayRequest: strongSelf)
-                    }
-                    
-                    //                    print("Request success with data: \(data)")
-                    let callBack: SMRequestParserBlock = { (aResponse: SMResponse) in
-                        if let strongSelf: SMGatewayRequest = self {
-                            
-                            if strongSelf.executeAllResponseBlocksSync {
-                                strongSelf.executeSynchronouslyAllResponseBlocks(response: aResponse)
-                            } else {
-                                strongSelf.executeAllResponseBlocks(response: aResponse)
-                            }
-                        }
-                    }
-                    
-                    if let successParserBlock: SMGatewayRequestSuccessParserBlock = self?.successParserBlock {
                         
-                        successParserBlock(dataRequest, responseObject, callBack)
-                    } else {
-                        if let response: SMResponse = self?.successBlock?(dataRequest, responseObject) {
-                            
-                            callBack(response)
+                        if strongSelf.executeAllResponseBlocksSync {
+                            strongSelf.executeSynchronouslyAllResponseBlocks(response: aResponse)
+                        } else {
+                            strongSelf.executeAllResponseBlocks(response: aResponse)
                         }
                     }
-                case .failure(let error):
-                    print("Request failed with error: \(error)")
-                    self?.executeFailureBlock(responseObject: responseObject)
                 }
-            })
-            
-            return completion(dataRequest)
-        }
+                
+                if let successParserBlock: SMGatewayRequestSuccessParserBlock = self?.successParserBlock {
+                    
+                    successParserBlock(dataRequest, responseObject, callBack)
+                } else {
+                    if let response: SMResponse = self?.successBlock?(dataRequest, responseObject) {
+                        
+                        callBack(response)
+                    }
+                }
+            case .failure(let error):
+                print("Request failed with error: \(error)")
+                self?.executeFailureBlock(responseObject: responseObject)
+            }
+        })
+        
+        return dataRequest
     }
     
-    open func executeSuccessBlock(responseObject aResponseObject: DataResponse<Any>) {
+    open func executeSuccessBlock(responseObject aResponseObject: AFDataResponse<Any>) {
         
         if let successBlock: SMGatewayRequestResponseBlock = successBlock,
             let dataRequest: DataRequest = dataRequest {
@@ -222,7 +363,7 @@ open class SMGatewayRequest: SMRequest {
         }
     }
     
-    open func executeFailureBlock(responseObject aResponseObject: DataResponse<Any>) {
+    open func executeFailureBlock(responseObject aResponseObject: AFDataResponse<Any>) {
         
         if let failureBlock: SMGatewayRequestResponseBlock = failureBlock,
             let dataRequest: DataRequest = dataRequest {

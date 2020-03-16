@@ -27,17 +27,17 @@ Pod::Spec.new do |s|
     s.homepage  = 'https://vrgsoft.net/'
     s.authors   = {'semenag01' => 'semenag01@meta.ua'}
     s.pod_target_xcconfig = { 'SWIFT_VERSION' => '5.0' }
-    s.source    = { :git => 'https://github.com/VRGsoftUA/VRGSoftIOSNetworkKit.git', :branch => 'master', :tag => '1.0.0' }
+    s.source    = { :git => 'https://github.com/VRGsoftUA/VRGSoftIOSNetworkKit.git', :branch => 'master', :tag => '2.0.0' }
 
     #platform
         s.platform = :ios
-        s.ios.deployment_target = '9.0'
+        s.ios.deployment_target = '10.0'
 
     #build settings
         s.requires_arc = true
 
     #file patterns
         s.source_files = 'VRGSoftIOSNetworkKit/Network/*.swift'
-        
-        s.dependency 'Alamofire', '~> 4.8'
+
+        s.dependency 'Alamofire', '~> 5.0'
 end

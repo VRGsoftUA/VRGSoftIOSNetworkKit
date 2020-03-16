@@ -2,96 +2,66 @@
 //  SMGatewayConfigurator.swift
 //  VRGSoftIOSNetworkKit
 //
-//  Created by OLEKSANDR SEMENIUK on 1/4/17.
-//  Copyright © 2017 VRG Soft. All rights reserved.
+//  Created by OLEKSANDR SEMENIUK on 7/17/18.
+//  Copyright © 2020 VRG Soft. All rights reserved.
 //
 
-import Foundation
 import Alamofire
 
-open class SMGatewayConfigurator {
+public protocol SMGatewayConfiguratorProtocol {
+    var defaultParameters: [String: AnyObject] { get }
+    var defaultHeaders: [String: String] { get }
+    var baseUrl: URL? { get }
+    var isInternetReachable: Bool { get }
+}
+
+open class SMDefaultGatewayConfigurator: SMGatewayConfiguratorProtocol {
     
-    private var defaultParameters: [String: AnyObject] = [:]
-    private var defaultHeaders: [String: String] = [:]
+    public static var shared: SMDefaultGatewayConfigurator = SMDefaultGatewayConfigurator()
     
-    public static var shared: SMGatewayConfigurator = SMGatewayConfigurator()
+    open private(set) var defaultParameters: [String: AnyObject] = [:]
+    open private(set) var defaultHeaders: [String: String] = [:]
+    open private(set) var baseUrl: URL?
+    open private(set) var networkReachabilityManager: SMNetworkReachabilityManagerProtocol?
     
-    open var url: URL? {
+    open var isInternetReachable: Bool {
         
-        didSet {
-            
-            if let url: URL = url {
-                
-                configureGatewaysWithBase(url: url)
-            }
-        }
-    }
-    
-    open var gateways: [SMGateway] = []
-    open var networkReachabilityManager: NetworkReachabilityManager?
-    
-    public let retrier: SMRequestRetrier = SMRequestRetrier()
-    
-    init() {
-        SessionManager.default.retrier = retrier
-    }
-    
-    open func isInternetReachable() -> Bool {
-        
-        let result: Bool = networkReachabilityManager?.isReachable ?? false
+        let result: Bool = networkReachabilityManager?.isReachable == true
         
         return result
     }
     
-    open func register(gateway aGateway: SMGateway) {
+    private init() { }
+    
+    open func configure(with baseUrl: URL?, networkReachabilityManager: SMNetworkReachabilityManagerProtocol? = nil) {
         
-        defaultHeaders.forEach { (aKey, aValue) in
+        self.baseUrl = baseUrl
+        
+        if let networkReachabilityManager: SMNetworkReachabilityManagerProtocol = networkReachabilityManager {
             
-            aGateway.defaultHeaders[aKey] = aValue
+            self.networkReachabilityManager = networkReachabilityManager
+            
+        } else if self.networkReachabilityManager == nil,
+            let host: String = baseUrl?.host {
+            
+            self.networkReachabilityManager = SMDefaultNetworkReachabilityManager(host: host)
         }
         
-        defaultParameters.forEach { (aKey, aValue) in
-            
-            aGateway.defaultParameters[aKey] = aValue
-        }
-        
-        gateways.append(aGateway)
+        self.networkReachabilityManager?.startListening()
     }
     
-    private func configureGatewaysWithBase(url aUrl: URL) {
-        
-        if let host: String = aUrl.host {
-            
-            networkReachabilityManager = NetworkReachabilityManager(host: host)
-            networkReachabilityManager?.startListening()
-        } else {
-            
-            assert(false)
-        }
-        
-        for g: SMGateway in gateways where g.baseUrl != aUrl {
-            
-            g.configureWithBase(url: aUrl)
-        }
+    open func set(networkReachabilityManager: SMNetworkReachabilityManagerProtocol) {
+        self.networkReachabilityManager = networkReachabilityManager
+        networkReachabilityManager.startListening()
     }
-    
+        
     open func setHTTPHeader(value aValue: String?, key aKey: String) {
         
         defaultHeaders[aKey] = aValue
-        
-        for g: SMGateway in gateways {
-            
-            g.defaultHeaders[aKey] = aValue
-        }
     }
     
     open func setDefaulParameter(value aValue: AnyObject?, key aKey: String) {
         
         defaultParameters[aKey] = aValue
-        
-        for g: SMGateway in gateways {
-            
-            g.defaultParameters[aKey] = aValue
-        }
     }
 }
