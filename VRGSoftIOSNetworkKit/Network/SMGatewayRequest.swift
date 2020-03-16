@@ -31,7 +31,7 @@ open class SMGatewayRequest: SMRequest {
     open unowned var gateway: SMGateway
     open var dataRequest: DataRequest?
     
-    open var retryCount: Int = 4
+    open var retryCount: Int = 0
     open var retryTime: TimeInterval = 0.5
     
     open var path: String?
@@ -98,11 +98,14 @@ open class SMGatewayRequest: SMRequest {
         self.type = aType
     }
     
-    override open func start() {
+    @discardableResult
+    override open func start() -> Self {
         
         super.start()
         
         gateway.start(request: self)
+        
+        return self
     }
     
     override open func cancel() {
