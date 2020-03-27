@@ -14,52 +14,36 @@ open class SMGatewayRequestMultipart: SMGatewayRequest {
     
     open var constructingBlock: SMConstructingMultipartFormDataBlock
     
-    public init(delegate: SMGatewayRequestDelegate?,
-                type aType: HTTPMethod,
-                constructingBlock: @escaping SMConstructingMultipartFormDataBlock) {
-        
-        self.constructingBlock = constructingBlock
-        super.init(delegate: delegate, type: aType)
-    }
-    
-    public init(type: HTTPMethod,
-                path: String,
-                parameters: [String: AnyObject]? = nil,
-                headers: [String: String]? = nil,
-                constructingBlock: @escaping SMConstructingMultipartFormDataBlock) {
+    public init(session: Session,
+                type: HTTPMethod,
+                constructingBlock: @escaping SMConstructingMultipartFormDataBlock,
+                delegate: SMGatewayRequestDelegate? = nil) {
         
         self.constructingBlock = constructingBlock
         
-        super.init(type: type, path: path, parameters: parameters, headers: headers)
-        
+        super.init(session: session, type: type, delegate: delegate)
     }
     
-    public override init(delegate: SMGatewayRequestDelegate?, type: HTTPMethod) {
-        fatalError("init(delegate:type:) has not been implemented")
-    }
-    
-    override init(type: HTTPMethod,
-                  path: String,
-                  parameters: [String: AnyObject]? = nil,
-                  headers: [String: String]? = nil) {
-        fatalError("init(type:path:parameters:headers:) has not been implemented")
-        
+    public override init(session: Session, type: HTTPMethod, delegate: SMGatewayRequestDelegate? = nil) {
+        fatalError("init(session:type:delegate:) has not been implemented")
     }
     
     override open func getDataRequest() -> DataRequest? {
+        
         guard let fullPath: URL = fullPath else {
             return nil
         }
         
-        let uploadRequest: UploadRequest = AF.upload(multipartFormData: { multipartFormData in
+        let uploadRequest: UploadRequest = session.upload(multipartFormData: { [weak self] multipartFormData in
             
-            self.constructingBlock(multipartFormData)
+            self?.constructingBlock(multipartFormData)
             
         }, to: fullPath, method: type, headers: allHeaders)
         
-        self.dataRequest = uploadRequest
+        dataRequest = uploadRequest
         
-        self.dataRequest?.responseJSON(completionHandler: {[weak self] responseObject in
+        dataRequest?.responseJSON(completionHandler: { [weak self] responseObject in
+            
             switch responseObject.result {
             case .success:
                 self?.executeSuccessBlock(responseObject: responseObject)

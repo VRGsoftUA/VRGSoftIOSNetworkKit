@@ -6,8 +6,6 @@
 //  Copyright © 2020 VRG Soft. All rights reserved.
 //
 
-import Foundation
-
 open class SMResponse {
     
     open var isSuccess: Bool = false

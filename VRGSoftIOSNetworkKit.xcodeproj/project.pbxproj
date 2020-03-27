@@ -24,6 +24,9 @@
 		8BB4E1E3241FA38900D88AAA /* SMNetworkReachabilityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BB4E1E0241FA38900D88AAA /* SMNetworkReachabilityManager.swift */; };
 		8BB4E1E4241FA38900D88AAA /* SMRequestAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BB4E1E1241FA38900D88AAA /* SMRequestAdapter.swift */; };
 		8BB4E1E5241FA38900D88AAA /* SMRequestInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BB4E1E2241FA38900D88AAA /* SMRequestInterceptor.swift */; };
+		8BB61B91242CE81500812672 /* SMSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BB61B90242CE81500812672 /* SMSession.swift */; };
+		8BB61B93242CE8E300812672 /* SMMockResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BB61B92242CE8E300812672 /* SMMockResponse.swift */; };
+		8BDB3C0C2422865400AAB901 /* SMTestGateway.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BDB3C0B2422865400AAB901 /* SMTestGateway.swift */; };
 		B4C584BD515DF4267E77E5AD /* Pods_VRGSoftIOSNetworkKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 79F159A4849C277D40FD6CCF /* Pods_VRGSoftIOSNetworkKit.framework */; };
 /* End PBXBuildFile section */
 
@@ -50,6 +53,9 @@
 		8BB4E1E0241FA38900D88AAA /* SMNetworkReachabilityManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SMNetworkReachabilityManager.swift; sourceTree = "<group>"; };
 		8BB4E1E1241FA38900D88AAA /* SMRequestAdapter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SMRequestAdapter.swift; sourceTree = "<group>"; };
 		8BB4E1E2241FA38900D88AAA /* SMRequestInterceptor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SMRequestInterceptor.swift; sourceTree = "<group>"; };
+		8BB61B90242CE81500812672 /* SMSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMSession.swift; sourceTree = "<group>"; };
+		8BB61B92242CE8E300812672 /* SMMockResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMMockResponse.swift; sourceTree = "<group>"; };
+		8BDB3C0B2422865400AAB901 /* SMTestGateway.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SMTestGateway.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,6 +102,7 @@
 			children = (
 				8BB4E1AE241F8A8B00D88AAA /* Network */,
 				8BB4E19A241F8A2700D88AAA /* AppDelegate.swift */,
+				8BDB3C0B2422865400AAB901 /* SMTestGateway.swift */,
 				8BB4E19C241F8A2700D88AAA /* SceneDelegate.swift */,
 				8BB4E19E241F8A2700D88AAA /* ViewController.swift */,
 				8BB4E1A0241F8A2700D88AAA /* Main.storyboard */,
@@ -112,6 +119,7 @@
 				8BB4E1B9241F8BCE00D88AAA /* SMCompoundRequest.swift */,
 				8BB4E1B2241F8AA400D88AAA /* SMGateway.swift */,
 				8BB4E1AF241F8AA400D88AAA /* SMGatewayConfigurator.swift */,
+				8BB61B92242CE8E300812672 /* SMMockResponse.swift */,
 				8BB4E1E0241FA38900D88AAA /* SMNetworkReachabilityManager.swift */,
 				8BB4E1B3241F8AA400D88AAA /* SMGatewayRequest.swift */,
 				8BB4E1B0241F8AA400D88AAA /* SMGatewayRequestMultipart.swift */,
@@ -120,6 +128,7 @@
 				8BB4E1E2241FA38900D88AAA /* SMRequestInterceptor.swift */,
 				8BB4E1B1241F8AA400D88AAA /* SMRequestRetrier.swift */,
 				8BB4E1BD241F8BDE00D88AAA /* SMResponse.swift */,
+				8BB61B90242CE81500812672 /* SMSession.swift */,
 			);
 			path = Network;
 			sourceTree = "<group>";
@@ -277,7 +286,10 @@
 				8BB4E19D241F8A2700D88AAA /* SceneDelegate.swift in Sources */,
 				8BB4E1BC241F8BCE00D88AAA /* SMRequest.swift in Sources */,
 				8BB4E1E4241FA38900D88AAA /* SMRequestAdapter.swift in Sources */,
+				8BB61B93242CE8E300812672 /* SMMockResponse.swift in Sources */,
 				8BB4E1B4241F8AA400D88AAA /* SMGatewayConfigurator.swift in Sources */,
+				8BDB3C0C2422865400AAB901 /* SMTestGateway.swift in Sources */,
+				8BB61B91242CE81500812672 /* SMSession.swift in Sources */,
 				8BB4E1BB241F8BCE00D88AAA /* SMCompoundRequest.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

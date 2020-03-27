@@ -62,22 +62,22 @@ open class SMGatewayRequest: SMRequest {
     }
     
     open weak var delegate: SMGatewayRequestDelegate?
+    
     open var type: HTTPMethod
+    open var session: Session
     
     open var dataRequest: DataRequest?
+    open var mockResponse: SMMockResponse?
     
     open var retryCount: Int = 0
     open var retryTime: TimeInterval = 0.5
-    
     open var acceptableStatusCodes: [Int]?
     open var acceptableContentTypes: [String]?
     
     open var path: String?
-   
-    open var parameterEncoding: ParameterEncoding?
-    
     open var parameters: [String: AnyObject]?
     open var headers: [String: String]?
+    open var parameterEncoding: ParameterEncoding?
     
     open var successBlock: SMGatewayRequestResponseBlock?
     open var successParserBlock: SMGatewayRequestSuccessParserBlock?
@@ -207,36 +207,14 @@ open class SMGatewayRequest: SMRequest {
         return result
     }
     
-    public init(delegate: SMGatewayRequestDelegate?, type: HTTPMethod) {
+    public init(session: Session, type: HTTPMethod, delegate: SMGatewayRequestDelegate? = nil) {
+        self.session = session
+        self.type = type
         self.delegate = delegate
-        self.type = type
     }
     
-    public init(type: HTTPMethod, path: String, parameters: [String: AnyObject]? = nil, headers: [String: String]? = nil) {
-        self.type = type
-        self.path = path
-        self.parameters = parameters
-        self.headers = headers
-    }
     
-    open func parameterEncoding(for type: HTTPMethod) -> ParameterEncoding? {
-        let result: ParameterEncoding?
-        
-        if let parameterEncoding: ParameterEncoding = parameterEncoding {
-            result = parameterEncoding
-        } else {
-            switch type {
-            case .options, .head, .get, .delete:
-                result = URLEncoding.default
-            case .patch, .post, .put:
-                result = JSONEncoding.default
-            default:
-                result = nil
-            }
-        }
-        
-        return result
-    }
+    // MARK: -
     
     @discardableResult
     override open func start() -> Self {
@@ -260,23 +238,14 @@ open class SMGatewayRequest: SMRequest {
             
             printCURLIfNeeded()
             
-            dataRequest.resume()
+            if let mockResponse: SMMockResponse = mockResponse {
+                start(withMockResponse: mockResponse, dataRequest: dataRequest)
+            } else {
+                dataRequest.resume()
+            }
         }
         
         return self
-    }
-    
-    func printCURLIfNeeded() {
-        if printCURLDescription {
-            dataRequest?.cURLDescription(calling: { test in
-                print("""
-                    \ncURL description \(self)
-                    **********************
-                    \(test)
-                    **********************
-                    """)
-            })
-        }
     }
     
     override open func cancel() {
@@ -306,44 +275,106 @@ open class SMGatewayRequest: SMRequest {
         return dataRequest?.task?.state == .completed
     }
     
+    
+    // MARK: -
+    
+    open func parameterEncoding(for type: HTTPMethod) -> ParameterEncoding? {
+        
+        let result: ParameterEncoding?
+        
+        if let parameterEncoding: ParameterEncoding = parameterEncoding {
+            result = parameterEncoding
+        } else {
+            switch type {
+            case .options, .head, .get, .delete:
+                result = URLEncoding.default
+            case .patch, .post, .put:
+                result = JSONEncoding.default
+            default:
+                result = nil
+            }
+        }
+        
+        return result
+    }
+    
+    func printCURLIfNeeded() {
+        
+        if printCURLDescription {
+            
+            dataRequest?.cURLDescription(calling: { test in
+                print("""
+                    \ncURL description \(self)
+                    **********************
+                    \(test)
+                    **********************
+                    """)
+            })
+        }
+    }
+    
     open func getDataRequest() -> DataRequest? {
         
         guard let fullPath: URL = fullPath,
             let parameterEncoding = parameterEncoding(for: type) else { return  nil }
-                                
-        let dataRequest: DataRequest = AF.request(fullPath, method: type, parameters: allParams, encoding: parameterEncoding, headers: allHeaders, interceptor: interceptor)
+                                        
+        let dataRequest: DataRequest = session.request(fullPath,
+                                                       method: type,
+                                                       parameters: allParams,
+                                                       encoding: parameterEncoding,
+                                                       headers: allHeaders,
+                                                       interceptor: interceptor)
                 
         dataRequest.responseJSON(completionHandler: {[weak self] responseObject in
-            
-            switch responseObject.result {
-            case .success:
-                let callBack: SMRequestParserBlock = { (aResponse: SMResponse) in
-                    if let strongSelf: SMGatewayRequest = self {
-                        
-                        if strongSelf.executeAllResponseBlocksSync {
-                            strongSelf.executeSynchronouslyAllResponseBlocks(response: aResponse)
-                        } else {
-                            strongSelf.executeAllResponseBlocks(response: aResponse)
-                        }
-                    }
-                }
-                
-                if let successParserBlock: SMGatewayRequestSuccessParserBlock = self?.successParserBlock {
-                    
-                    successParserBlock(dataRequest, responseObject, callBack)
-                } else {
-                    if let response: SMResponse = self?.successBlock?(dataRequest, responseObject) {
-                        
-                        callBack(response)
-                    }
-                }
-            case .failure(let error):
-                print("Request failed with error: \(error)")
-                self?.executeFailureBlock(responseObject: responseObject)
-            }
+            self?.processResponseObject(responseObject, forDataRequest: dataRequest)
         })
         
         return dataRequest
+    }
+    
+    open func processResponseObject(_ responseObject: AFDataResponse<Any>, forDataRequest dataRequest: DataRequest) {
+        
+        switch responseObject.result {
+        case .success:
+            let callBack: SMRequestParserBlock = { [weak self] (aResponse: SMResponse) in
+                self?.executeAllResponseBlocks(response: aResponse)
+            }
+            
+            if let successParserBlock: SMGatewayRequestSuccessParserBlock = successParserBlock {
+                
+                successParserBlock(dataRequest, responseObject, callBack)
+            } else if let response: SMResponse = successBlock?(dataRequest, responseObject) {
+                
+                callBack(response)
+            }
+        case .failure(let error):
+            print("Request failed with error: \(error)")
+            executeFailureBlock(responseObject: responseObject)
+        }
+    }
+    
+    open func start(withMockResponse mockResponse: SMMockResponse, dataRequest: DataRequest) {
+        
+        guard let fullPath: URL = fullPath else { return }
+        
+        let value: Any = mockResponse.value(for: self) as Any
+        let error: AFError? = mockResponse.error(for: self)
+        let statusCode: Int = mockResponse.statusCode(for: self)
+        let delay: TimeInterval = mockResponse.delay(for: self)
+        
+        let result: AFResult<Any> = Result(value: value, error: error)
+        let urlResponse: HTTPURLResponse? = HTTPURLResponse(url: fullPath, statusCode: statusCode, httpVersion: nil, headerFields: nil)
+        
+        let response: DataResponse = DataResponse(request: dataRequest.request,
+                                                  response: urlResponse,
+                                                  data: dataRequest.data,
+                                                  metrics: dataRequest.metrics,
+                                                  serializationDuration: 0,
+                                                  result: result)
+        
+        defaultResponseQueue.asyncAfter(deadline: .now() + delay) {
+            self.processResponseObject(response, forDataRequest: dataRequest)
+        }
     }
     
     open func executeSuccessBlock(responseObject aResponseObject: AFDataResponse<Any>) {
@@ -353,13 +384,7 @@ open class SMGatewayRequest: SMRequest {
             
             let response: SMResponse = successBlock(dataRequest, aResponseObject)
             
-            if executeAllResponseBlocksSync {
-                
-                executeSynchronouslyAllResponseBlocks(response: response)
-            } else {
-                
-                executeAllResponseBlocks(response: response)
-            }
+            executeAllResponseBlocks(response: response)
         }
     }
     
@@ -370,25 +395,31 @@ open class SMGatewayRequest: SMRequest {
             
             let response: SMResponse = failureBlock(dataRequest, aResponseObject)
             
-            if executeAllResponseBlocksSync {
-                
-                executeSynchronouslyAllResponseBlocks(response: response)
-            } else {
-                
-                executeAllResponseBlocks(response: response)
-            }
+            executeAllResponseBlocks(response: response)
         }
     }
     
-    open func setup(successBlock aSuccessBlock: @escaping SMGatewayRequestResponseBlock, failureBlock aFailureBlock: @escaping SMGatewayRequestResponseBlock) {
+    open func setup(successBlock aSuccessBlock: @escaping SMGatewayRequestResponseBlock,
+                    failureBlock aFailureBlock: @escaping SMGatewayRequestResponseBlock) {
         
         successBlock = aSuccessBlock
         failureBlock = aFailureBlock
     }
     
-    open func setup(successParserBlock aSuccessParserBlock: @escaping SMGatewayRequestSuccessParserBlock, failureBlock aFailureBlock: @escaping SMGatewayRequestResponseBlock) {
+    open func setup(successParserBlock aSuccessParserBlock: @escaping SMGatewayRequestSuccessParserBlock,
+                    failureBlock aFailureBlock: @escaping SMGatewayRequestResponseBlock) {
         
         successParserBlock = aSuccessParserBlock
         failureBlock = aFailureBlock
+    }
+}
+
+extension Result {
+    init(value: Success, error: Failure?) {
+        if let error: Failure = error {
+            self = .failure(error)
+        } else {
+            self = .success(value)
+        }
     }
 }

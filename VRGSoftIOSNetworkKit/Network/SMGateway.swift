@@ -8,37 +8,30 @@
 
 import Alamofire
 
-public protocol SMGatewayProtocol: SMGatewayRequestDelegate {
+public protocol SMGateway: SMGatewayRequestDelegate {
     
-    var defaultGatewayConfigurator: SMGatewayConfiguratorProtocol { get }
+    var gatewayConfigurator: SMGatewayConfigurator { get }
     
     func adapter(for request: SMGatewayRequest) -> SMRequestAdapter
     func retrier(for request: SMGatewayRequest) -> SMRequestRetrier
     
     func defaultFailureBlockFor(request aRequest: SMGatewayRequest) -> SMGatewayRequestResponseBlock
-    
-    
-    // MARK: Create requests
-    
-    func request(type aType: HTTPMethod,
-                 path aPath: String,
-                 parameters aParameters: [String: AnyObject]?,
-                 successBlock aSuccessBlock: @escaping SMGatewayRequestResponseBlock) -> SMGatewayRequest
-    func request(type aType: HTTPMethod,
-                 path aPath: String,
-                 parameters aParameters: [String: AnyObject]?,
-                 successParserBlock aSuccessParserBlock: @escaping SMGatewayRequestSuccessParserBlock) -> SMGatewayRequest
-    func uploadRequest(type aType: HTTPMethod,
-                       path aPath: String,
-                       constructingBlock: @escaping SMConstructingMultipartFormDataBlock,
-                       successBlock aSuccessBlock: @escaping SMGatewayRequestResponseBlock) -> SMGatewayRequestMultipart
-    
 }
 
-public extension SMGatewayProtocol {
+public extension SMGateway {
     
-    var defaultGatewayConfigurator: SMGatewayConfiguratorProtocol {
-        return SMDefaultGatewayConfigurator.shared
+    var session: Session {
+        return SMSession.shared
+    }
+    
+    
+    // MARK: - SMGateway
+    
+    var gatewayConfigurator: SMGatewayConfigurator {
+        
+        let configurator: SMGatewayConfigurator = SMGatewayConfigurator.shared
+        
+        return configurator
     }
     
     func adapter(for request: SMGatewayRequest) -> SMRequestAdapter {
@@ -59,9 +52,24 @@ public extension SMGatewayProtocol {
         
         func result(data: DataRequest, responseObject: AFDataResponse<Any>) -> SMResponse {
             
-            let response: SMResponse = SMResponse()
+            let isCanceled: Bool = {
+                
+                let result: Bool
+                
+                if case let .sessionTaskFailed(error): AFError? = responseObject.error,
+                    (error as NSError).code == NSURLErrorCancelled {
+                    result = true
+                } else if responseObject.error?.isExplicitlyCancelledError == true {
+                    result = true
+                } else {
+                    result = false
+                }
+                
+                return result
+            }()
             
-            response.isCancelled = (responseObject.error as NSError?)?.code == NSURLErrorCancelled
+            let response: SMResponse = SMResponse()
+            response.isCancelled = isCanceled
             response.isSuccess = false
             response.textMessage = responseObject.error?.localizedDescription
             response.error = responseObject.error
@@ -75,60 +83,60 @@ public extension SMGatewayProtocol {
     
     // MARK: Create requests
     
-    func request(type aType: HTTPMethod,
-                 path aPath: String,
-                 parameters aParameters: [String: AnyObject]? = nil,
-                 successBlock aSuccessBlock: @escaping SMGatewayRequestResponseBlock) -> SMGatewayRequest {
+    func request(type: HTTPMethod,
+                 path: String,
+                 parameters: [String: AnyObject]? = nil,
+                 successBlock: @escaping SMGatewayRequestResponseBlock) -> SMGatewayRequest {
         
-        let result: SMGatewayRequest = SMGatewayRequest.init(delegate: self, type: aType)
+        let result: SMGatewayRequest = SMGatewayRequest.init(session: session, type: type, delegate: self)
         
-        result.path = aPath
+        result.path = path
         
-        if let parameters: [String: AnyObject] = aParameters {
+        if let parameters: [String: AnyObject] = parameters {
             
             result.parameters = parameters
         }
         
-        let failureBlock: SMGatewayRequestResponseBlock = self.defaultFailureBlockFor(request: result)
+        let failureBlock: SMGatewayRequestResponseBlock = defaultFailureBlockFor(request: result)
         
-        result.setup(successBlock: aSuccessBlock, failureBlock: failureBlock)
+        result.setup(successBlock: successBlock, failureBlock: failureBlock)
         
         return result
     }
 
-    func request(type aType: HTTPMethod,
-                 path aPath: String,
-                 parameters aParameters: [String: AnyObject]? = nil,
-                 successParserBlock aSuccessParserBlock: @escaping SMGatewayRequestSuccessParserBlock) -> SMGatewayRequest {
+    func request(type: HTTPMethod,
+                 path: String,
+                 parameters: [String: AnyObject]? = nil,
+                 successParserBlock: @escaping SMGatewayRequestSuccessParserBlock) -> SMGatewayRequest {
         
-        let result: SMGatewayRequest = SMGatewayRequest.init(delegate: self, type: aType)
+        let result: SMGatewayRequest = SMGatewayRequest.init(session: session, type: type, delegate: self)
         
-        result.path = aPath
+        result.path = path
         
-        if let parameters: [String: AnyObject] = aParameters {
+        if let parameters: [String: AnyObject] = parameters {
             
             result.parameters = parameters
         }
         
-        let failureBlock: SMGatewayRequestResponseBlock = self.defaultFailureBlockFor(request: result)
+        let failureBlock: SMGatewayRequestResponseBlock = defaultFailureBlockFor(request: result)
         
-        result.setup(successParserBlock: aSuccessParserBlock, failureBlock: failureBlock)
+        result.setup(successParserBlock: successParserBlock, failureBlock: failureBlock)
         
         return result
     }
 
-    func uploadRequest(type aType: HTTPMethod = .post,
-                       path aPath: String,
+    func uploadRequest(type: HTTPMethod = .post,
+                       path: String,
                        constructingBlock: @escaping SMConstructingMultipartFormDataBlock,
-                       successBlock aSuccessBlock: @escaping SMGatewayRequestResponseBlock) -> SMGatewayRequestMultipart {
+                       successBlock: @escaping SMGatewayRequestResponseBlock) -> SMGatewayRequestMultipart {
         
-        let result: SMGatewayRequestMultipart = SMGatewayRequestMultipart(delegate: self, type: aType, constructingBlock: constructingBlock)
+        let result: SMGatewayRequestMultipart = SMGatewayRequestMultipart(session: session, type: type, constructingBlock: constructingBlock, delegate: self)
         
-        result.path = aPath
+        result.path = path
         
-        let failureBlock: SMGatewayRequestResponseBlock = self.defaultFailureBlockFor(request: result)
+        let failureBlock: SMGatewayRequestResponseBlock = defaultFailureBlockFor(request: result)
         
-        result.setup(successBlock: aSuccessBlock, failureBlock: failureBlock)
+        result.setup(successBlock: successBlock, failureBlock: failureBlock)
         
         return result
     }
@@ -138,28 +146,28 @@ public extension SMGatewayProtocol {
     
     func baseUrl(for request: SMGatewayRequest) -> URL? {
         
-        let result: URL? = defaultGatewayConfigurator.baseUrl
+        let result: URL? = gatewayConfigurator.baseUrl
         
         return result
     }
     
     func defaultParameters(for request: SMGatewayRequest) -> [String: AnyObject] {
         
-        let result: [String: AnyObject] = defaultGatewayConfigurator.defaultParameters
+        let result: [String: AnyObject] = gatewayConfigurator.defaultParameters
         
         return result
     }
     
     func defaultHeaders(for request: SMGatewayRequest) -> [String: String] {
         
-        let result: [String: String] = defaultGatewayConfigurator.defaultHeaders
+        let result: [String: String] = gatewayConfigurator.defaultHeaders
         
         return result
     }
     
     func isInternetReachable(for request: SMGatewayRequest) -> Bool {
         
-        let result: Bool = defaultGatewayConfigurator.isInternetReachable
+        let result: Bool = gatewayConfigurator.isInternetReachable
         
         return result
     }

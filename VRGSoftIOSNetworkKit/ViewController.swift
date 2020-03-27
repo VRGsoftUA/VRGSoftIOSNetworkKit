@@ -12,7 +12,11 @@ class ViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
+        
+        
+        SMTestGateway.shared.getTestData().startWithResponseBlockInMainQueue { response in
+            print(response)
+        }
     }
 
 

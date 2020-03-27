@@ -26,13 +26,10 @@ open class SMResponseNode {
 open class SMRequest {
     
     deinit {
-        
         print(#function + " - \(type(of: self))")
     }
     
-    public init() {
-        
-    }
+    public init() { }
     
     open var tag: Int = 0
     
@@ -104,6 +101,14 @@ open class SMRequest {
     }
     
     open func executeAllResponseBlocks(response aResponse: SMResponse) {
+        if executeAllResponseBlocksSync {
+            executeAllResponseBlocksSynchronously(response: aResponse)
+        } else {
+            executeAllResponseBlocksAsynchronously(response: aResponse)
+        }
+    }
+    
+    open func executeAllResponseBlocksAsynchronously(response aResponse: SMResponse) {
         
         for node: SMResponseNode in responseBlocks {
             
@@ -115,7 +120,7 @@ open class SMRequest {
         releaseSelf()
     }
 
-    open func executeSynchronouslyAllResponseBlocks(response aResponse: SMResponse) {
+    open func executeAllResponseBlocksSynchronously(response aResponse: SMResponse) {
         
         for node: SMResponseNode in responseBlocks {
             

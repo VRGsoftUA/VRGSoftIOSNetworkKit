@@ -9,6 +9,7 @@
 import Alamofire
 
 public protocol SMNetworkReachabilityManagerProtocol {
+    
     var isReachable: Bool { get }
     
     init(host: String)

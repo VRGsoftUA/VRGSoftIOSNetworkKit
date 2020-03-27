@@ -6,7 +6,7 @@
 //  Copyright © 2020 VRG Soft. All rights reserved.
 //
 
-import UIKit
+import Foundation
 
 open class SMCompoundRequest: SMRequest {
     

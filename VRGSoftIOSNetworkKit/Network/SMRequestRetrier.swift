@@ -14,6 +14,7 @@ open class SMRequestRetrier: RequestRetrier {
     public private(set) var retryCount: Int = 0
     
     public init(request: SMGatewayRequest) {
+        
         self.request = request
         retryCount = request.retryCount
     }
@@ -21,13 +22,19 @@ open class SMRequestRetrier: RequestRetrier {
     
     // MARK: - RequestRetrier
     
-    public func retry(_ request: Request, for session: Session, dueTo error: Error, completion: @escaping (RetryResult) -> Void) {
+    public func retry(_ request: Request,
+                      for session: Session,
+                      dueTo error: Error,
+                      completion: @escaping (RetryResult) -> Void) {
+        
         if retryCount == 0 || (error as NSError?)?.code == NSURLErrorCancelled {
+            
             completion(.doNotRetry)
+            
         } else {
+            
             completion(.retryWithDelay(self.request.retryTime))
-            print("\n\nRETRY", request)
-            print(self.request.debugDescription)
+            print("\n\nRETRY", self.request.debugDescription)
         }
     }
 }

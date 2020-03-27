@@ -8,17 +8,10 @@
 
 import Alamofire
 
-public protocol SMGatewayConfiguratorProtocol {
-    var defaultParameters: [String: AnyObject] { get }
-    var defaultHeaders: [String: String] { get }
-    var baseUrl: URL? { get }
-    var isInternetReachable: Bool { get }
-}
-
-open class SMDefaultGatewayConfigurator: SMGatewayConfiguratorProtocol {
+open class SMGatewayConfigurator {
     
-    public static var shared: SMDefaultGatewayConfigurator = SMDefaultGatewayConfigurator()
-    
+    public static let shared: SMGatewayConfigurator = SMGatewayConfigurator()
+        
     open private(set) var defaultParameters: [String: AnyObject] = [:]
     open private(set) var defaultHeaders: [String: String] = [:]
     open private(set) var baseUrl: URL?
@@ -51,6 +44,7 @@ open class SMDefaultGatewayConfigurator: SMGatewayConfiguratorProtocol {
     }
     
     open func set(networkReachabilityManager: SMNetworkReachabilityManagerProtocol) {
+        
         self.networkReachabilityManager = networkReachabilityManager
         networkReachabilityManager.startListening()
     }
@@ -60,8 +54,28 @@ open class SMDefaultGatewayConfigurator: SMGatewayConfiguratorProtocol {
         defaultHeaders[aKey] = aValue
     }
     
+    open func removeHTTPHeader(forKey key: String) {
+        
+        defaultHeaders.removeValue(forKey: key)
+    }
+    
+    open func removeAllHTTPHeaders() {
+        
+        defaultHeaders.removeAll()
+    }
+    
     open func setDefaulParameter(value aValue: AnyObject?, key aKey: String) {
         
         defaultParameters[aKey] = aValue
+    }
+    
+    open func removeDefaulParameter(forKey key: String) {
+        
+        defaultParameters.removeValue(forKey: key)
+    }
+    
+    open func removeAllDefaulParameter() {
+        
+        defaultParameters.removeAll()
     }
 }
