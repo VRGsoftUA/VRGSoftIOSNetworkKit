@@ -9,17 +9,21 @@
 import Alamofire
 
 public typealias SMConstructingMultipartFormDataBlock = (MultipartFormData) -> Void
+public typealias SMProgressHandler = (Progress) -> Void
 
 open class SMGatewayRequestMultipart: SMGatewayRequest {
     
     open var constructingBlock: SMConstructingMultipartFormDataBlock
+    open var progressHandler: SMProgressHandler?
     
     public init(session: Session,
                 type: HTTPMethod,
                 constructingBlock: @escaping SMConstructingMultipartFormDataBlock,
+                progressHandler: SMProgressHandler? = nil,
                 delegate: SMGatewayRequestDelegate? = nil) {
         
         self.constructingBlock = constructingBlock
+        self.progressHandler = progressHandler
         
         super.init(session: session, type: type, delegate: delegate)
     }
@@ -41,6 +45,10 @@ open class SMGatewayRequestMultipart: SMGatewayRequest {
         }, to: fullPath, method: type, headers: allHeaders)
         
         dataRequest = uploadRequest
+        
+        dataRequest?.uploadProgress(closure: { [weak self] progres in
+            self?.progressHandler?(progres)
+        })
         
         dataRequest?.responseJSON(completionHandler: { [weak self] responseObject in
             

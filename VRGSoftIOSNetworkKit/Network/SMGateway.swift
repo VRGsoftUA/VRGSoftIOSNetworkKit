@@ -128,9 +128,10 @@ public extension SMGateway {
     func uploadRequest(type: HTTPMethod = .post,
                        path: String,
                        constructingBlock: @escaping SMConstructingMultipartFormDataBlock,
+                       progressHandler: SMProgressHandler? = nil,
                        successBlock: @escaping SMGatewayRequestResponseBlock) -> SMGatewayRequestMultipart {
         
-        let result: SMGatewayRequestMultipart = SMGatewayRequestMultipart(session: session, type: type, constructingBlock: constructingBlock, delegate: self)
+        let result: SMGatewayRequestMultipart = SMGatewayRequestMultipart(session: session, type: type, constructingBlock: constructingBlock, progressHandler: progressHandler, delegate: self)
         
         result.path = path
         
